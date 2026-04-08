@@ -4,7 +4,7 @@ import type { Api } from '@/server/api';
 
 // For client-side usage, connect to the same origin as the server
 export const api = treaty<Api>(
-  typeof window !== undefined
+  typeof window !== 'undefined'
     ? window.location.origin
     : (process.env.BETTER_AUTH_URL ?? process.env.DEV_BASE_URL!),
 );
