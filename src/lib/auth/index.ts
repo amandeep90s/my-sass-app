@@ -6,7 +6,7 @@ import * as schema from '@/lib/db';
 import { db } from '@/lib/db';
 
 const isDev = process.env.NODE_ENV === 'development';
-const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+const baseURL = process.env.BETTER_AUTH_URL ?? process.env.LOCAL_BASE_URL;
 
 export const auth = betterAuth({
   baseURL,
@@ -37,7 +37,7 @@ export const auth = betterAuth({
     },
   },
 
-  trustedOrigins: isDev ? ['http://localhost:3000'] : [baseURL],
+  trustedOrigins: isDev ? [process.env.LOCAL_BASE_URL!] : [baseURL!],
 
   plugins: [tanstackStartCookies()],
 });

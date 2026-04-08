@@ -45,4 +45,4 @@ export const api = new Elysia({ prefix: '/api' })
     };
   });
 
-export type API = typeof api;
+export type Api = typeof api;
