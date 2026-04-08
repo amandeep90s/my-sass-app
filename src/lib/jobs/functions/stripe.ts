@@ -83,4 +83,71 @@ export const handlePurchaseCompleted = inngest.createFunction(
   },
 );
 
-export const stripeFunctions = [handlePurchaseCompleted];
+export const handleRefund = inngest.createFunction(
+  {
+    id: 'refund-processed',
+    triggers: [{ event: 'stripe/charge.refunded' }],
+  },
+  async ({ event, step }) => {
+    const { paymentIntentId, amountRefunded, originalAmount } = event.data as {
+      chargeId: string;
+      paymentIntentId: string;
+      amountRefunded: number;
+      originalAmount: number;
+      currency: string;
+    };
+
+    const isFullRefund = amountRefunded >= originalAmount;
+
+    // Step 1: Find the purchase and user
+    const { user, purchase } = await step.run('lookup-purchase', async () => {
+      const purchaseResult = await db
+        .select()
+        .from(purchases)
+        .where(eq(purchases.stripePaymentIntentId, paymentIntentId))
+        .limit(1);
+
+      if (!purchaseResult[0]) {
+        return { user: null, purchase: null };
+      }
+
+      const userResult = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, purchaseResult[0].userId))
+        .limit(1);
+
+      return {
+        user: userResult[0] ?? null,
+        purchase: purchaseResult[0],
+      };
+    });
+
+    if (!purchase || !user) {
+      return { success: false, reason: 'no_matching_purchase' };
+    }
+
+    // Step 2: Update purchase status
+    await step.run('update-purchase-status', async () => {
+      await db
+        .update(purchases)
+        .set({
+          status: isFullRefund ? 'refunded' : 'partially_refunded',
+          updatedAt: new Date(),
+        })
+        .where(eq(purchases.id, purchase.id));
+    });
+
+    // Step 3: Send customer notification
+    await step.run('notify-customer', async () => {
+      console.log(
+        `Sending ${isFullRefund ? 'full' : 'partial'} refund notification to ${user.email}`,
+      );
+      // await sendEmail({ ... });
+    });
+
+    return { success: true, isFullRefund };
+  },
+);
+
+export const stripeFunctions = [handlePurchaseCompleted, handleRefund];
