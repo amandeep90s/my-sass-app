@@ -6,5 +6,5 @@ import type { Api } from '@/server/api';
 export const api = treaty<Api>(
   typeof window !== undefined
     ? window.location.origin
-    : (process.env.BETTER_AUTH_URL ?? process.env.LOCAL_BASE_URL!),
+    : (process.env.BETTER_AUTH_URL ?? process.env.DEV_BASE_URL!),
 );
